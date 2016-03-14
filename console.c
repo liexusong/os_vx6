@@ -178,8 +178,7 @@ consputc(int c)
   if(c == BACKSPACE){
     uartputc('\b'); uartputc(' '); uartputc('\b');
   } else if (c == MOVE_LEFT || c == MOVE_RIGHT){
-    //uartputc('\b');
-    while (0);
+    while (0); //do nothing
   } else
     uartputc(c);  //write char to console
   cgaputc(c);     //change the cursor position
@@ -197,17 +196,6 @@ struct {
 #define C(x)  ((x)-'@')  // Control-x
 
 void
-shiftoneleft(void) 
-{
-  uint index = input.e;
-  while ((index % INPUT_BUF) < ((input.w + input.l) % INPUT_BUF)) 
-  {
-    input.buf[index] = input.buf[(index + 1) % INPUT_BUF];
-    index++;
-  }
-}
-
-void
 moveleft(void) {
   if(input.e != input.w){
     input.e--;
@@ -222,6 +210,48 @@ moveright(void) {
     consputc(MOVE_RIGHT);
     input.e++;
   }
+}
+
+void
+shiftoneleft(void) 
+{
+  char c;
+  uint count = 0;
+  while ((input.e % INPUT_BUF) < ((input.w + input.l) % INPUT_BUF)) 
+  {
+    c = input.buf[(input.e + 1) % INPUT_BUF];
+    input.buf[input.e % INPUT_BUF] = c;
+    input.e++;
+    count++;
+    consputc(c);
+  }
+  
+  while (count > 0){
+    moveleft();
+    count--;
+  } 
+}
+
+void
+shiftoneright(int newc) 
+{
+  int tmp;
+  int tmp2 = newc;
+  uint count = 0;
+  while ((input.e % INPUT_BUF) <= ((input.w + input.l) % INPUT_BUF)) 
+  {
+    consputc(tmp2);
+    tmp = input.buf[(input.e) % INPUT_BUF]; 
+    input.buf[input.e % INPUT_BUF] = tmp2;
+    tmp2 = tmp;
+    input.e++;
+    count++;
+  }
+
+  while (count > 1){
+    moveleft();
+    count--;
+  } 
 }
 
 void
@@ -251,9 +281,12 @@ consoleintr(int (*getc)(void))
       break;
     case C('H'): case '\x7f':  // Backspace
       if(input.e != input.w){
-        //if ((input.e + input.l))
         input.e--;
         consputc(BACKSPACE);
+        if(input.e + 1 != (input.w + input.l)){
+          shiftoneleft();
+        }
+        input.l--;
       }
       break;
     case (0xE4): // Key left
@@ -264,14 +297,27 @@ consoleintr(int (*getc)(void))
       break;
     default:
       if(c != 0 && input.e-input.r < INPUT_BUF){
-        c = (c == '\r') ? '\n' : c;
-        input.buf[input.e++ % INPUT_BUF] = c;
-        consputc(c);
-        input.l++;
-        if(c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF){
+        c = (c == '\r') ? '\n' : c;              
+        if(c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF){          
+          while (input.e < (input.w + input.l)){
+            moveright();
+          }
+          input.buf[input.e++ % INPUT_BUF] = c;
+          consputc(c);
+         
           input.w = input.e;
           input.l = 0; //TODO: is it ok? maybe we should support multiline input?
           wakeup(&input.r);
+        } 
+        else if(input.e != (input.w + input.l)){
+          //while(0);//do nothing
+          input.l++;
+          shiftoneright(c);
+        } 
+        else {
+          input.l++;
+          input.buf[input.e++ % INPUT_BUF] = c;
+          consputc(c);
         }
       }
       break;
