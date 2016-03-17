@@ -141,11 +141,12 @@ cgaputc(int c)
 
   if(c == '\n')
     pos += 80 - pos%80;
-  else if(c == BACKSPACE || c == MOVE_LEFT){
+  else if(c == BACKSPACE || c == MOVE_LEFT) {
     if(pos > 0) --pos;
-  } else if (c == MOVE_RIGHT) {
+  }
+  else if (c == MOVE_RIGHT) 
     pos++;
-  } else
+  else
     crt[pos++] = (c&0xff) | 0x0700;  // black on white
 
   if(pos < 0 || pos > 25*80)
@@ -184,7 +185,8 @@ consputc(int c)
   cgaputc(c);     //change the cursor position
 }
 
-#define INPUT_BUF 128
+#define INPUT_BUF   128
+#define MAX_HISTORY 16
 struct {
   char buf[INPUT_BUF];
   uint r;  // Read index
@@ -194,9 +196,99 @@ struct {
 } input;
 
 #define C(x)  ((x)-'@')  // Control-x
+static char historyBuffer[MAX_HISTORY][INPUT_BUF];
+static int lastHistIdx = -1; 		// number of entered commands
+static int histCmdIdx  = -1;		// distance (in steps) from user input - range [-1, 15]
+static char userInput[INPUT_BUF]; 	// user input backup on arrows up/down
+
+static void killline(void);
+
+void 
+cpycyclic(char *s, const char *t, int n){
+
+
+}
+
+//implemented as system call
+int 
+history(char* buffer, int historyId)
+{
+  if (historyId < 0 || 15 < historyId)  // history illegal
+    return -2; 						
+  else if (historyId > lastHistIdx)     // no history for the given id
+    return -1; 						
+  else {
+  	safestrcpy(buffer, historyBuffer[(lastHistIdx-historyId) % MAX_HISTORY], INPUT_BUF);
+    return 0;
+  }
+}
+
+void 
+updateHistory(void)
+{
+  histCmdIdx = -1;
+  lastHistIdx++;
+  char* src = historyBuffer[lastHistIdx % MAX_HISTORY];
+  memset(src, '\0', INPUT_BUF);
+
+  int i = 0;
+  while (i <= input.l){
+    src[i] = input.buf[(input.w + i) % INPUT_BUF];
+    i++;
+  }
+}
+
+void 
+showhist(uint histId){ // assume that histId has values -1 - 15
+  char cmd[INPUT_BUF];
+  if (histCmdIdx == -1) { // user input required
+	safestrcpy(cmd, userInput, INPUT_BUF);
+  }
+  else {				   // another history cmd required
+    history(cmd, histId);
+  }
+
+  //kill line - clen screen from old cmd
+  killline();
+
+  input.l = 0;
+  input.e = input.w;
+  while (cmd[input.l]) {
+    input.buf[input.e++ % INPUT_BUF] = cmd[input.l];
+    consputc(cmd[input.l]);
+    input.l++;
+  } 
+  input.buf[input.e % INPUT_BUF] = '\0';
+}
+
+void 
+moveup(void) 
+{
+  if (histCmdIdx < 15 && (histCmdIdx + 1) <= lastHistIdx) { 	// legal history cmd -- otherwise do nothing
+  	histCmdIdx++;
+  	if (histCmdIdx == 0 && input.e > input.w) { // backup user input
+      int i = 0;
+      while (i < input.l){
+ 	    userInput[i] = input.buf[(input.w + i) % INPUT_BUF];
+ 	    i++;
+      }
+  	}
+  	showhist(histCmdIdx);
+  }
+}
+
+void 
+movedown(void) 
+{
+  if (histCmdIdx > -1) {   //legal history cmd -- otherwise do nothing	
+	histCmdIdx--; 
+   	showhist(histCmdIdx);
+  }
+}
 
 void
-moveleft(void) {
+moveleft(void) 
+{
   if(input.e != input.w){
     input.e--;
     consputc(MOVE_LEFT);
@@ -204,7 +296,8 @@ moveleft(void) {
 }
 
 void
-moveright(void) {
+moveright(void) 
+{
   if (input.e != (input.w + input.l) % INPUT_BUF) {
     //consputc(input.buf[input.e % INPUT_BUF]);
     consputc(MOVE_RIGHT);
@@ -254,6 +347,21 @@ shiftoneright(int newc)
   } 
 }
 
+void 
+killline(void) {
+  while (input.e != (input.w + input.l) % INPUT_BUF) { // move edit index to end
+    moveright();
+  }
+
+  while(input.e != input.w &&
+        input.buf[(input.e-1) % INPUT_BUF] != '\n'){
+    input.e--;
+    consputc(BACKSPACE);
+  }
+
+  input.l = 0; // init input length     
+}
+
 void
 consoleintr(int (*getc)(void))
 {
@@ -266,18 +374,7 @@ consoleintr(int (*getc)(void))
       doprocdump = 1;   // procdump() locks cons.lock indirectly; invoke later
       break;
     case C('U'):  // Kill line.
-
-      while (input.e != (input.w + input.l) % INPUT_BUF) { // move edit index to end
-        moveright();
-      }
-
-      while(input.e != input.w &&
-            input.buf[(input.e-1) % INPUT_BUF] != '\n'){
-        input.e--;
-        consputc(BACKSPACE);
-      }
-
-      input.l = 0; // init input length
+      killline();
       break;
     case C('H'): case '\x7f':  // Backspace
       if(input.e != input.w){
@@ -288,6 +385,12 @@ consoleintr(int (*getc)(void))
         }
         input.l--;
       }
+      break;
+    case (0xE2): // Key up
+      moveup();
+      break;
+    case (0xE3): // Key down
+      movedown();
       break;
     case (0xE4): // Key left
       moveleft();
@@ -302,6 +405,8 @@ consoleintr(int (*getc)(void))
           while (input.e < (input.w + input.l)){
             moveright();
           }
+          if (input.w < input.e)
+            updateHistory();
           input.buf[input.e++ % INPUT_BUF] = c;
           consputc(c);
          
@@ -394,4 +499,3 @@ consoleinit(void)
   picenable(IRQ_KBD);
   ioapicenable(IRQ_KBD, 0);
 }
-
