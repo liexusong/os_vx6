@@ -232,7 +232,7 @@ updateHistory(void)
   memset(src, '\0', INPUT_BUF);
 
   int i = 0;
-  while (i <= input.l){
+  while (i < input.l){
     src[i] = input.buf[(input.w + i) % INPUT_BUF];
     i++;
   }
@@ -262,16 +262,22 @@ showhist(uint histId){ // assume that histId has values -1 - 15
 }
 
 void 
+backupUserInput(void){
+  memset(userInput, '\0', INPUT_BUF);
+  int i = 0;
+    while (i < input.l){
+	  userInput[i] = input.buf[(input.w + i) % INPUT_BUF];
+	  i++;
+	}
+}
+
+void 
 moveup(void) 
 {
   if (histCmdIdx < 15 && (histCmdIdx + 1) <= lastHistIdx) { 	// legal history cmd -- otherwise do nothing
   	histCmdIdx++;
-  	if (histCmdIdx == 0 && input.e > input.w) { // backup user input
-      int i = 0;
-      while (i < input.l){
- 	    userInput[i] = input.buf[(input.w + i) % INPUT_BUF];
- 	    i++;
-      }
+  	if (histCmdIdx == 0 && input.e >= input.w) { // backup user input
+      backupUserInput();
   	}
   	showhist(histCmdIdx);
   }
