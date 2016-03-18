@@ -223,14 +223,15 @@ history(char* buffer, int historyId)
   }
 }
 
+// Add new user command to the history array
 void 
 updateHistory(void)
 {
-  histCmdIdx = -1;
-  lastHistIdx++;
-  char* src = historyBuffer[lastHistIdx % MAX_HISTORY];
-  memset(src, '\0', INPUT_BUF);
-
+  histCmdIdx = -1; // if we update history it means the user added a new cmd, so he is on "place" -1
+  lastHistIdx++; // update the static index of commands in the history array
+  char* src = historyBuffer[lastHistIdx % MAX_HISTORY];  
+  memset(src, '\0', INPUT_BUF); // clear the slot in the history array and fill it with '\0'
+  // copy from user input buffer to the history array:
   int i = 0;
   while (i < input.l){
     src[i] = input.buf[(input.w + i) % INPUT_BUF];
@@ -238,6 +239,7 @@ updateHistory(void)
   }
 }
 
+// Print to the console the commnds of history array using UP and DOWN keys
 void 
 showhist(uint histId){ // assume that histId has values -1 - 15
   char cmd[INPUT_BUF];
@@ -248,7 +250,7 @@ showhist(uint histId){ // assume that histId has values -1 - 15
     history(cmd, histId);
   }
 
-  //kill line - clen screen from old cmd
+  //kill line - clean screen from old cmd
   killline();
 
   input.l = 0;
@@ -407,11 +409,11 @@ consoleintr(int (*getc)(void))
     default:
       if(c != 0 && input.e-input.r < INPUT_BUF){
         c = (c == '\r') ? '\n' : c;              
-        if(c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF){          
-          while (input.e < (input.w + input.l)){
+        if(c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF){ // user run a cmd (pressed ENTER key)           
+          while (input.e < (input.w + input.l)){ // move the input buffer until the end 
             moveright();
           }
-          if (input.w < input.e)
+          if (input.w < input.e) // if the input isn't empty so update the history array
             updateHistory();
           input.buf[input.e++ % INPUT_BUF] = c;
           consputc(c);
