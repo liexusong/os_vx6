@@ -197,8 +197,8 @@ struct {
 
 #define C(x)  ((x)-'@')  // Control-x
 static char historyBuffer[MAX_HISTORY][INPUT_BUF];
-static int lastHistIdx = -1; 		// number of entered commands
-static int histCmdIdx  = -1;		// distance (in steps) from user input - range [-1, 15]
+static int lastHistIdx = -1; 				// number of entered commands
+static int histCmdIdx  = -1;				// distance (in steps) from user input - range [-1, 15]
 static char userInput[INPUT_BUF]; 	// user input backup on arrows up/down
 
 static void killline(void);

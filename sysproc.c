@@ -89,3 +89,14 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int
+sys_history(void)
+{
+  char* buf;
+  int historyId;
+
+  if(argptr(0, &buf, 128) < 0 || argint(1, &historyId) < 0) // fill parameter 0 and parameter 1 from function signature
+		return -1;
+  return history(buf, historyId);
+}
