@@ -100,3 +100,10 @@ sys_history(void)
 		return -1;
   return history(buf, historyId);
 }
+
+int
+sys_wait_2(void)
+{
+  return wait_2();
+
+}

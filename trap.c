@@ -36,7 +36,7 @@ idtinit(void)
 void
 trap(struct trapframe *tf)
 {
-  if(tf->trapno == T_SYSCALL){
+  if(tf->trapno == T_SYSCALL){ // trap has been called due to a syscall
     if(proc->killed)
       exit();
     proc->tf = tf;
@@ -108,4 +108,14 @@ trap(struct trapframe *tf)
   // Check if the process has been killed since we yielded
   if(proc && proc->killed && (tf->cs&3) == DPL_USER)
     exit();
+}
+
+void
+updproctime(void)
+{
+  switch(proc->state){
+  case RUNNABLE:
+    proc->retime
+
+  }
 }

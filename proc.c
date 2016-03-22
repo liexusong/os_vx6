@@ -48,7 +48,10 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
-  //p->ctime = clock();
+  p->ctime = clock(); // new process, creation time = time now 
+  p->retime = 0; 
+  p->rutime = 0;
+  p->stime = 0;
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -254,6 +257,25 @@ wait(void)
     // Wait for children to exit.  (See wakeup1 call in proc_exit.)
     sleep(proc, &ptable.lock);  //DOC: wait-sleep
   }
+}
+
+// wait_2 - Implemented as a system_call
+int
+wait_2(int *retime, int *rutime, int *stime)
+{
+  int retime, rutime, stime = 0;
+  int ans = -1;
+  // 
+  argint(0, &retime);
+  argint(1, &rutime);
+  argint(2, &stime);
+
+  ans = sys_wait();
+  // assign to retime/rutime/stime the values from the current proc
+  *(int*)retime = proc->retime;
+  *(int*)retime = proc->retime;
+  *(int*)retime = proc->retime;
+  return ans;
 }
 
 //PAGEBREAK: 42
@@ -464,5 +486,23 @@ procdump(void)
         cprintf(" %p", pc[i]);
     }
     cprintf("\n");
+  }
+}
+
+void
+updproctime(void)
+{
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    switch(p->state){
+    case RUNNABLE:
+      p->retime++;
+      break;
+    case SLEEPING:
+      p->stime++;
+      break;
+    case RUNNING:
+      p->rutime++;
+      break;
+    }
   }
 }
