@@ -263,18 +263,12 @@ wait(void)
 int
 wait_2(int *retime, int *rutime, int *stime)
 {
-  int retime, rutime, stime = 0;
   int ans = -1;
-  // 
-  argint(0, &retime);
-  argint(1, &rutime);
-  argint(2, &stime);
-
   ans = sys_wait();
   // assign to retime/rutime/stime the values from the current proc
   *(int*)retime = proc->retime;
-  *(int*)retime = proc->retime;
-  *(int*)retime = proc->retime;
+  *(int*)rutime = proc->rutime;
+  *(int*)stime = proc->stime;
   return ans;
 }
 

@@ -119,7 +119,7 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
-int             wait_2(void); //new
+int             wait_2(int *retime, int *rutime, int *stime); //new
 
 // swtch.S
 void            swtch(struct context**, struct context*);

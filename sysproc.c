@@ -104,6 +104,9 @@ sys_history(void)
 int
 sys_wait_2(void)
 {
-  return wait_2();
-
+  int retime, rutime, stime = 0;
+  
+  if (argint(0, &retime) < 0 || argint(1, &rutime) < 0 || argint(2, &stime) < 0)
+    return -1;
+  return wait_2(int *retime, int *rutime, int *stime);
 }

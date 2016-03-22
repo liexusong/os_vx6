@@ -51,6 +51,7 @@ trap(struct trapframe *tf)
     if(cpu->id == 0){
       acquire(&tickslock);
       ticks++;
+      updproctime(); // update ticks for each process
       wakeup(&ticks);
       release(&tickslock);
     }
@@ -110,12 +111,3 @@ trap(struct trapframe *tf)
     exit();
 }
 
-void
-updproctime(void)
-{
-  switch(proc->state){
-  case RUNNABLE:
-    proc->retime
-
-  }
-}
