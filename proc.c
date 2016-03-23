@@ -12,7 +12,7 @@ struct {
   struct proc proc[NPROC];
 } ptable;
 
-static struct queue pqueues[PQUE_NUM];
+//static struct queue pqueues[PQUE_NUM];
 static struct proc *initproc;
 
 int nextpid = 1;
@@ -280,28 +280,6 @@ wait2(int *retime, int *rutime, int *stime)
   return ans;
 }
 
-void 
-defaultPolicy(struct proc* p) 
-{
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->state != RUNNABLE)
-      continue;
-
-    // Switch to chosen process.  It is the process's job
-    // to release ptable.lock and then reacquire it
-    // before jumping back to us.
-    proc = p;
-    switchuvm(p);
-    p->state = RUNNING;
-    swtch(&cpu->scheduler, proc->context);
-    switchkvm();
-
-    // Process is done running for now.
-    // It should have changed its p->state before coming back.
-    proc = 0;
-  }
-}
-
 struct proc*
 getFirstReadyProc(struct proc* p)
 {
@@ -318,24 +296,66 @@ getFirstReadyProc(struct proc* p)
   return p;
 }
 
+
 void 
-fcfsPolicy(struct proc* p) 
+defaultPolicy(void) 
 {
+  struct proc *p;
 
-  while ((p = getFirstReadyProc(p)) != 0){
+  for(;;){
+    // Enable interrupts on this processor.
+    sti();
 
-    // Switch to chosen process.  It is the process's job
-    // to release ptable.lock and then reacquire it
-    // before jumping back to us.
-    proc = p;
-    switchuvm(p);
-    p->state = RUNNING;
-    swtch(&cpu->scheduler, proc->context);
-    switchkvm();
+    // Loop over process table looking for process to run.
+    acquire(&ptable.lock);
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state != RUNNABLE)
+        continue;
 
-    // Process is done running for now.
-    // It should have changed its p->state before coming back.
-    proc = 0;
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+      swtch(&cpu->scheduler, proc->context);
+      switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      proc = 0;
+    }
+    release(&ptable.lock);
+  }
+}
+
+void 
+fcfsPolicy(void) 
+{
+  struct proc *p;
+
+  for(;;){
+    // Enable interrupts on this processor.
+    sti();
+
+    // Loop over process table looking for process to run.
+    acquire(&ptable.lock);
+    while ((p = getFirstReadyProc(p)) != 0){
+
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+      swtch(&cpu->scheduler, proc->context);
+      switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      proc = 0;
+    }
+    release(&ptable.lock);
   }
 }
 
@@ -347,7 +367,7 @@ fcfsPolicy(struct proc* p)
 //  - swtch to start running that process
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
-void
+/*void
 scheduler(void)
 {
   struct proc *p = 0;
@@ -362,6 +382,24 @@ scheduler(void)
     release(&ptable.lock);
 
   }
+}*/
+
+void 
+scheduler(void) 
+{ 
+  #ifdef SCHEDFLAG_DEFAULT 
+    for(;;)
+    defaultPolicy(); 
+  #elif SCHEDFLAG_FCFS
+    for(;;)
+    fcfsPolicy(); 
+  /*#elif SCHEDFLAG_SML 
+    for(;;) 
+      smlPolicy();
+  #elif SCHEDFLAG_DML 
+    for(;;)  
+      dmlPolicy(); */
+  #endif 
 }
 
 // Enter scheduler.  Must hold only ptable.lock
