@@ -279,6 +279,65 @@ wait2(int *retime, int *rutime, int *stime)
   return ans;
 }
 
+void 
+defaultPolicy(struct proc* p) 
+{
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state != RUNNABLE)
+      continue;
+
+    // Switch to chosen process.  It is the process's job
+    // to release ptable.lock and then reacquire it
+    // before jumping back to us.
+    proc = p;
+    switchuvm(p);
+    p->state = RUNNING;
+    swtch(&cpu->scheduler, proc->context);
+    switchkvm();
+
+    // Process is done running for now.
+    // It should have changed its p->state before coming back.
+    proc = 0;
+  }
+}
+
+struct proc*
+getFirstReadyProc(struct proc* p)
+{
+  p = 0;
+  struct proc* tmp;
+
+  for(tmp = ptable.proc; tmp < &ptable.proc[NPROC]; tmp++){
+    //select p to be the first runnable proc with the smallest ctime
+    if (tmp->state == RUNNABLE && 
+            (!p || tmp->ctime < p->ctime)) { 
+      p = tmp;
+    }
+  }
+  return p;
+}
+
+void 
+fcfsPolicy(struct proc* p) 
+{
+
+  while ((p = getFirstReadyProc(p)) != 0){
+
+    // Switch to chosen process.  It is the process's job
+    // to release ptable.lock and then reacquire it
+    // before jumping back to us.
+    proc = p;
+    switchuvm(p);
+    p->state = RUNNING;
+    swtch(&cpu->scheduler, proc->context);
+    switchkvm();
+
+    // Process is done running for now.
+    // It should have changed its p->state before coming back.
+    proc = 0;
+  }
+}
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -290,7 +349,7 @@ wait2(int *retime, int *rutime, int *stime)
 void
 scheduler(void)
 {
-  struct proc *p;
+  struct proc *p = 0;
 
   for(;;){
     // Enable interrupts on this processor.
@@ -298,23 +357,7 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
-
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-      swtch(&cpu->scheduler, proc->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      proc = 0;
-    }
+    defaultPolicy(p);
     release(&ptable.lock);
 
   }
