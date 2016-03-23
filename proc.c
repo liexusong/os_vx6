@@ -256,6 +256,14 @@ wait(void)
   }
 }
 
+struct proc *get_next_proc() {
+	#if (SCHEDFLAG == DEFAULT)
+		
+	#else
+		#error "SCHEDFLAG not defined !!!"
+	#endif
+}
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
