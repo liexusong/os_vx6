@@ -55,10 +55,6 @@ trap(struct trapframe *tf)
       wakeup(&ticks);
       release(&tickslock);
     }
-    //update_proc_time(proc); // TODO updte all relatives ctime stime retime etc..
-    if (proc && proc->state == RUNNING)
-      proc->rutime++;
-
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_IDE:
@@ -107,7 +103,7 @@ trap(struct trapframe *tf)
 
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
-  if(proc && proc->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER && (proc->rutime % QUANTA) == 0)
+  if(proc && proc->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER)
     yield();
 
   // Check if the process has been killed since we yielded

@@ -258,14 +258,6 @@ wait(void)
   }
 }
 
-/*struct proc *get_next_proc() {
-	#if (SCHEDFLAG == DEFAULT)
-		
-	#else
-		#error "SCHEDFLAG not defined !!!"
-	#endif
-}*/
-
 // wait2 - Implemented as a system_call
 int
 wait2(int *retime, int *rutime, int *stime)
@@ -279,65 +271,6 @@ wait2(int *retime, int *rutime, int *stime)
   return ans;
 }
 
-void 
-defaultPolicy(struct proc* p) 
-{
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->state != RUNNABLE)
-      continue;
-
-    // Switch to chosen process.  It is the process's job
-    // to release ptable.lock and then reacquire it
-    // before jumping back to us.
-    proc = p;
-    switchuvm(p);
-    p->state = RUNNING;
-    swtch(&cpu->scheduler, proc->context);
-    switchkvm();
-
-    // Process is done running for now.
-    // It should have changed its p->state before coming back.
-    proc = 0;
-  }
-}
-
-struct proc*
-getFirstReadyProc(struct proc* p)
-{
-  p = 0;
-  struct proc* tmp;
-
-  for(tmp = ptable.proc; tmp < &ptable.proc[NPROC]; tmp++){
-    //select p to be the first runnable proc with the smallest ctime
-    if (tmp->state == RUNNABLE && 
-            (!p || tmp->ctime < p->ctime)) { 
-      p = tmp;
-    }
-  }
-  return p;
-}
-
-void 
-fcfsPolicy(struct proc* p) 
-{
-
-  while ((p = getFirstReadyProc(p)) != 0){
-
-    // Switch to chosen process.  It is the process's job
-    // to release ptable.lock and then reacquire it
-    // before jumping back to us.
-    proc = p;
-    switchuvm(p);
-    p->state = RUNNING;
-    swtch(&cpu->scheduler, proc->context);
-    switchkvm();
-
-    // Process is done running for now.
-    // It should have changed its p->state before coming back.
-    proc = 0;
-  }
-}
-
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -349,7 +282,7 @@ fcfsPolicy(struct proc* p)
 void
 scheduler(void)
 {
-  struct proc *p = 0;
+  struct proc *p;
 
   for(;;){
     // Enable interrupts on this processor.
@@ -357,7 +290,24 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    defaultPolicy(p);
+    // sort by ctime
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state != RUNNABLE)
+        continue;
+
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+      swtch(&cpu->scheduler, proc->context);
+      switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      proc = 0;
+    }
     release(&ptable.lock);
 
   }
