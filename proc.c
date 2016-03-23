@@ -6,7 +6,6 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
-//#include "<time.h>"
 
 struct {
   struct spinlock lock;
@@ -48,7 +47,7 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
-  p->ctime = clock(); // new process, creation time = time now 
+  p->ctime = ticks; // new process, creation time = time now 
   p->retime = 0; 
   p->rutime = 0;
   p->stime = 0;
@@ -259,16 +258,16 @@ wait(void)
   }
 }
 
-// wait_2 - Implemented as a system_call
+// wait2 - Implemented as a system_call
 int
-wait_2(int *retime, int *rutime, int *stime)
+wait2(int *retime, int *rutime, int *stime)
 {
   int ans = -1;
-  ans = sys_wait();
+  ans = wait();
   // assign to retime/rutime/stime the values from the current proc
-  *(int*)retime = proc->retime;
-  *(int*)rutime = proc->rutime;
-  *(int*)stime = proc->stime;
+  *retime = proc->retime;
+  *rutime = proc->rutime;
+  *stime = proc->stime;
   return ans;
 }
 
@@ -486,6 +485,8 @@ procdump(void)
 void
 updproctime(void)
 {
+  struct proc *p;
+
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     switch(p->state){
     case RUNNABLE:
@@ -496,6 +497,8 @@ updproctime(void)
       break;
     case RUNNING:
       p->rutime++;
+      break;
+    default:
       break;
     }
   }

@@ -24,7 +24,7 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int history(char*, int);
-int wait_2(int *retime, int *rutime, int *stime);
+int wait2(int* , int*, int*);
 
 // ulib.c
 int stat(char*, struct stat*);
