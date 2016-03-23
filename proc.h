@@ -1,5 +1,6 @@
 // Segments in proc->gdt.
 #define NSEGS     7
+#define PQUE_NUM  3
 
 // Per-CPU state
 struct cpu {

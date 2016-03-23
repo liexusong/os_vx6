@@ -1,0 +1,13 @@
+TODO
+
+Reut:
+1. in each place a proc become RUNNABLE add it to the default queue - SML and DML policies
+2. add set_prio function as an appropriate system call
+3. rewrite policies code so there won't be any duplications
+
+
+Omri:
+1. in trap() function - add handle to preemption / non preemption scheduler policies
+
+
+Task 3.4 --> need todo

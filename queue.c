@@ -9,16 +9,7 @@
   Edited by : Reut Zinman
   Date: March 23, 2016
 */
-#include "param.h"
-
-#define QUEUESIZE NPROC
-
-typedef struct {
-  struct proc* arr[QUEUESIZE];             /* body of queue */
-  int first;                      /* position of first element */
-  int last;                       /* position of last element */
-  int count;                      /* number of queue elements */
-} queue;
+#include "queue.h"
 
 void 
 init_queue(queue *q)

@@ -6,14 +6,21 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "queue.h"
 
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
 } ptable;
 
-//static struct queue pqueues[PQUE_NUM];
 static struct proc *initproc;
+static int scheduler_queue_priority = PQUE_NUM;
+
+#if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
+  #define PROC_INITIAL_PRIORITY  2;
+  static struct queue pqueues[PQUE_NUM];
+#endif
+
 
 int nextpid = 1;
 extern void forkret(void);
@@ -166,6 +173,12 @@ fork(void)
   // lock to force the compiler to emit the np->state write last.
   acquire(&ptable.lock);
   np->state = RUNNABLE;
+  
+  // add new proc to the defalt priority queue  - policies SML and DML
+  #if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
+    enqueue(&pqueues[DEFUALT_PRIORITY], np);
+  #endif 
+  
   release(&ptable.lock);
   
   return pid;
@@ -259,14 +272,6 @@ wait(void)
   }
 }
 
-/*struct proc *get_next_proc() {
-	#if (SCHEDFLAG == DEFAULT)
-		
-	#else
-		#error "SCHEDFLAG not defined !!!"
-	#endif
-}*/
-
 // wait2 - Implemented as a system_call
 int
 wait2(int *retime, int *rutime, int *stime)
@@ -280,22 +285,21 @@ wait2(int *retime, int *rutime, int *stime)
   return ans;
 }
 
-struct proc*
-getFirstReadyProc(struct proc* p)
-{
-  p = 0;
-  struct proc* tmp;
 
-  for(tmp = ptable.proc; tmp < &ptable.proc[NPROC]; tmp++){
-    //select p to be the first runnable proc with the smallest ctime
-    if (tmp->state == RUNNABLE && 
-            (!p || tmp->ctime < p->ctime)) { 
-      p = tmp;
-    }
+int
+set_prio(int priority){
+
+  if (priority < 1 || priority > 3)
+    return -1;
+  else {
+    scheduler_queue_priority = priority - 1;
+    return 0;
   }
-  return p;
 }
 
+#ifdef SCHEDFLAG_DEFAULT
+
+void defaultPolicy(void) __attribute__((noreturn));
 
 void 
 defaultPolicy(void) 
@@ -329,6 +333,29 @@ defaultPolicy(void)
   }
 }
 
+#endif
+
+
+#ifdef SCHEDFLAG_FCFS
+
+struct proc*
+getFirstReadyProc(struct proc* p)
+{
+  p = 0;
+  struct proc* tmp;
+
+  for(tmp = ptable.proc; tmp < &ptable.proc[NPROC]; tmp++){
+    //select p to be the first runnable proc with the smallest ctime
+    if (tmp->state == RUNNABLE && 
+            (!p || tmp->ctime < p->ctime)) { 
+      p = tmp;
+    }
+  }
+  return p;
+}
+
+void fcfsPolicy(void) __attribute__((noreturn));
+
 void 
 fcfsPolicy(void) 
 {
@@ -359,6 +386,54 @@ fcfsPolicy(void)
   }
 }
 
+#endif
+
+
+
+#if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
+
+void getNextProc(proc* p)
+{  
+  while (!p) {
+    if (!empty(&pqueues[scheduler_queue_priority])
+      p = dequeue(&pqueues[scheduler_queue_priority])
+    else
+      set_prio((scheduler--) % PQUE_NUM);
+  }
+}
+
+void mlPolicy(void) __attribute__((noreturn));
+
+void 
+mlPolicy(void)
+{
+  struct proc *p;
+
+  for(;;){
+    // Enable interrupts on this processor.
+    sti();
+
+    // Loop over process table looking for process to run.
+    acquire(&ptable.lock);
+    getNextProc(p);
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+      swtch(&cpu->scheduler, proc->context);
+      switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      proc = 0;
+    }
+    release(&ptable.lock);
+}
+
+#endif
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -384,21 +459,27 @@ scheduler(void)
   }
 }*/
 
-void 
+//PAGEBREAK: 42
+// Per-CPU process scheduler.
+// Each CPU calls scheduler() after setting itself up.
+// Scheduler never returns.  It loops, doing:
+//  - choose a process to run
+//  - swtch to start running that process
+//  - eventually that process transfers control
+//      via swtch back to the scheduler.
+void
 scheduler(void) 
 { 
   #ifdef SCHEDFLAG_DEFAULT 
-    for(;;)
     defaultPolicy(); 
   #elif SCHEDFLAG_FCFS
-    for(;;)
     fcfsPolicy(); 
-  /*#elif SCHEDFLAG_SML 
-    for(;;) 
-      smlPolicy();
+  #elif SCHEDFLAG_SML 
+      mlPolicy();
   #elif SCHEDFLAG_DML 
-    for(;;)  
-      dmlPolicy(); */
+      mlPolicy(); 
+  #else
+      #error "no valid scheduling flag defined"
   #endif 
 }
 
