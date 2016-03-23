@@ -36,7 +36,7 @@ idtinit(void)
 void
 trap(struct trapframe *tf)
 {
-  if(tf->trapno == T_SYSCALL){
+  if(tf->trapno == T_SYSCALL){ // trap has been called due to a syscall
     if(proc->killed)
       exit();
     proc->tf = tf;
@@ -51,6 +51,7 @@ trap(struct trapframe *tf)
     if(cpu->id == 0){
       acquire(&tickslock);
       ticks++;
+      updproctime(); // update ticks for each process
       wakeup(&ticks);
       release(&tickslock);
     }
@@ -113,3 +114,4 @@ trap(struct trapframe *tf)
   if(proc && proc->killed && (tf->cs&3) == DPL_USER)
     exit();
 }
+

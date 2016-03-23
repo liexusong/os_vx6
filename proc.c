@@ -6,7 +6,6 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
-//#include "<time.h>"
 
 struct {
   struct spinlock lock;
@@ -48,7 +47,10 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
-  //p->ctime = clock();
+  p->ctime = ticks; // new process, creation time = time now 
+  p->retime = 0; 
+  p->rutime = 0;
+  p->stime = 0;
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -256,12 +258,25 @@ wait(void)
   }
 }
 
-struct proc *get_next_proc() {
+/*struct proc *get_next_proc() {
 	#if (SCHEDFLAG == DEFAULT)
 		
 	#else
 		#error "SCHEDFLAG not defined !!!"
 	#endif
+}*/
+
+// wait2 - Implemented as a system_call
+int
+wait2(int *retime, int *rutime, int *stime)
+{
+  int ans = -1;
+  ans = wait();
+  // assign to retime/rutime/stime the values from the current proc
+  *retime = proc->retime;
+  *rutime = proc->rutime;
+  *stime = proc->stime;
+  return ans;
 }
 
 //PAGEBREAK: 42
@@ -472,5 +487,27 @@ procdump(void)
         cprintf(" %p", pc[i]);
     }
     cprintf("\n");
+  }
+}
+
+void
+updproctime(void)
+{
+  struct proc *p;
+
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    switch(p->state){
+    case RUNNABLE:
+      p->retime++;
+      break;
+    case SLEEPING:
+      p->stime++;
+      break;
+    case RUNNING:
+      p->rutime++;
+      break;
+    default:
+      break;
+    }
   }
 }
