@@ -2,7 +2,7 @@
 #define _QUEUE_H_
 
 #include "param.h"
-//#include "defs.h"
+#include "proc.h"
 
 #define QUEUESIZE NPROC
 
@@ -21,4 +21,9 @@ struct proc* dequeue(queue *q);
 
 int empty(queue *q);
 
+#if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
+#define PROC_INITIAL_PRIORITY  2;      //default priority queue for ready proc
+struct queue pqueues[MAX_PRIO];        //all priority queues
 #endif
+
+#endif //_QUEUE_H_
