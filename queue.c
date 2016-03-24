@@ -12,7 +12,7 @@
 #include "queue.h"
 
 void 
-init_queue(queue *q)
+init_queue(struct queue *q)
 {
   q->first = 0;
   q->last = 0;
@@ -20,7 +20,7 @@ init_queue(queue *q)
 }
 
 void 
-enqueue(queue *q, struct proc *x)
+enqueue(struct queue *q, struct proc *x)
 {
   if (q->count >= QUEUESIZE){ /* queque is full - do nothing */ }
   else {
@@ -31,7 +31,7 @@ enqueue(queue *q, struct proc *x)
 }
 
 struct proc*
-dequeue(queue *q)
+dequeue(struct queue *q)
 {
   struct proc *x;
 
@@ -45,7 +45,7 @@ dequeue(queue *q)
 }
 
 int 
-empty(queue *q)
+empty(struct queue *q)
 {
   if (q->count <= 0)
     return 1;

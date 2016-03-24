@@ -8,6 +8,7 @@ struct rtcdate;
 struct spinlock;
 struct stat;
 struct superblock;
+struct queue;
 
 // bio.c
 void            binit(void);
@@ -21,6 +22,12 @@ void            cprintf(char*, ...);
 void            consoleintr(int(*)(void));
 void            panic(char*) __attribute__((noreturn));
 int 			history(char* buffer, int historyId); // new 
+
+// queue.c
+void 			init_queue(struct queue*); 
+void 			enqueue(struct queue*, struct proc*);
+struct proc* 	dequeue(struct queue*);
+int 			empty(struct queue*);
 
 // exec.c
 int             exec(char*, char**);
