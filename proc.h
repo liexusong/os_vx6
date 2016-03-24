@@ -1,6 +1,8 @@
+#include "queue.h"
+
 // Segments in proc->gdt.
 #define NSEGS     7
-#define PQUE_NUM  3
+#define MAX_PRIO  3
 
 // Per-CPU state
 struct cpu {
@@ -79,4 +81,10 @@ struct proc {
 //   fixed-size stack
 //   expandable heap
 
+// function that updates running time, sleep time, ready time for each proc 
 void updproctime(void);
+
+#if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
+  #define PROC_INITIAL_PRIORITY  2;      //default priority queue for ready proc
+  struct queue pqueues[MAX_PRIO];        //all priority queues
+#endif

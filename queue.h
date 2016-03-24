@@ -1,4 +1,8 @@
+#ifndef  _QUEUE_H_
+#define _QUEUE_H_
+
 #include "param.h"
+//#include "defs.h"
 
 #define QUEUESIZE NPROC
 
@@ -16,3 +20,5 @@ void enqueue(queue *q, struct proc *x);
 struct proc* dequeue(queue *q);
 
 int empty(queue *q);
+
+#endif

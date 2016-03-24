@@ -6,7 +6,6 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
-#include "queue.h"
 
 struct {
   struct spinlock lock;
@@ -14,13 +13,7 @@ struct {
 } ptable;
 
 static struct proc *initproc;
-static int scheduler_queue_priority = PQUE_NUM;
-
-#if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
-  #define PROC_INITIAL_PRIORITY  2;
-  static struct queue pqueues[PQUE_NUM];
-#endif
-
+static int scheduler_priority = MAX_PRIO; // scheduler current priority queue
 
 int nextpid = 1;
 extern void forkret(void);
@@ -176,7 +169,7 @@ fork(void)
   
   // add new proc to the defalt priority queue  - policies SML and DML
   #if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
-    enqueue(&pqueues[DEFUALT_PRIORITY], np);
+    enqueue(&pqueues[scheduler_priority], np);
   #endif 
   
   release(&ptable.lock);
@@ -292,7 +285,7 @@ set_prio(int priority){
   if (priority < 1 || priority > 3)
     return -1;
   else {
-    scheduler_queue_priority = priority - 1;
+    scheduler_priority = priority - 1;
     return 0;
   }
 }
@@ -392,13 +385,14 @@ fcfsPolicy(void)
 
 #if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
 
-void getNextProc(proc* p)
+void 
+getNextProc(struct proc* p)
 {  
-  while (!p) {
-    if (!empty(&pqueues[scheduler_queue_priority])
-      p = dequeue(&pqueues[scheduler_queue_priority])
+  while (!p) { 
+    if (!empty(&pqueues[scheduler_priority]))     // if curr queue is not empty
+      p = dequeue(&pqueues[scheduler_priority]);  // extract first queue
     else
-      set_prio((scheduler--) % PQUE_NUM);
+      set_prio((scheduler_priority--) % MAX_PRIO);         // switch to a lower priority queue
   }
 }
 
