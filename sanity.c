@@ -59,7 +59,11 @@ main(int argc, char *argv[])
           exit(0);
       }
       else if (pid > 0) {       // parent 
-          
+          int retime;
+          int rutime;
+          int stime;
+
+          wait2(&retime, &rutime, &stime);
       }
       else {                    // fork failed
           printf("fork() failed!\n");
