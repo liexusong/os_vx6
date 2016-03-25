@@ -128,7 +128,7 @@ static int (*syscalls[])(void) = {
 [SYS_history] sys_history,
 [SYS_wait2]   sys_wait2,
 [SYS_set_prio] sys_set_prio,
-[SYS_wait2]   sys_yield,
+[SYS_yield]   sys_yield,
 };
 
 void

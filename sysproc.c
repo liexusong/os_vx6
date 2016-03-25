@@ -104,13 +104,13 @@ sys_history(void)
 int
 sys_wait2(void)
 {
-  int retime = 0;
-  int rutime = 0;
-  int stime = 0;
+  int* retime = 0;
+  int* rutime = 0;
+  int* stime  = 0;
   
-  if (argint(0, &retime) < 0 || argint(1, &rutime) < 0 || argint(2, &stime) < 0)
+  if (argptr(0, (void*)&retime, sizeof(int)) < 0 || argptr(1, (void*)&rutime, sizeof(int)) < 0 || argptr(2, (void*)&stime, sizeof(int)) < 0)
     return -1;
-  return wait2(&retime, &rutime, &stime);
+  return wait2(retime, rutime, stime);
 }
 
 int

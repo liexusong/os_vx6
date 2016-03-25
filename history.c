@@ -11,7 +11,7 @@ main(int argc, char *argv[])
 
   for(i = max_size-1; i >= 0; i--) {
     if (0 == history(buf, i)){
-	  printf(0, "%s\n", buf);
+	    printf(0, "%s\n", buf);
     }
   }
   exit();
