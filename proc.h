@@ -73,6 +73,15 @@ struct proc {
   int rutime;                  // Run time (RUNNIG)
 };
 
+#define QUEUESIZE NPROC
+
+struct queue{
+  struct proc* arr[QUEUESIZE];    /* body of queue */
+  int first;                      /* position of first element */
+  int last;                       /* position of last element */
+  int count;                      /* number of queue elements */
+};
+
 // Process memory is laid out contiguously, low addresses first:
 //   text
 //   original data and bss
@@ -81,8 +90,3 @@ struct proc {
 
 // function that updates running time, sleep time, ready time for each proc 
 void updproctime(void);
-
-#if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
-  #define PROC_INITIAL_PRIORITY  2;      //default priority queue for ready proc
-  struct queue pqueues[MAX_PRIO];        //all priority queues
-#endif
