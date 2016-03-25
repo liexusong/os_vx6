@@ -21,7 +21,6 @@
 void 
 init_queue(struct queue *q)
 {
-  cprintf("init_queue\n");
   q->first = 0;
   q->last = 0;
   q->count = 0;

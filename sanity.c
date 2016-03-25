@@ -17,7 +17,7 @@ f1(void){ //S-CPU
   int i, j; 
   for (i = 0; i < 100; i++){
     for (i = 0; i < 1000000; i++){} 
-    //yield();
+    yield();
   } 
 }
 
