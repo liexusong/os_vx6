@@ -16,7 +16,7 @@ static int proc_initial_priority = 2;    //default priority queue for ready proc
 
 #if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
   struct spinlock prio_que_lock;
-  static int scheduler_priority = MAX_PRIO; // scheduler current priority queue
+  //static int scheduler_priority = MAX_PRIO; // scheduler current priority queue
   struct queue prio_que[MAX_PRIO];        //all priority queues
 #endif
 
@@ -34,8 +34,13 @@ pinit(void)
   initlock(&ptable.lock, "ptable");
 
   #if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
+  int i = 0;
+  while (i < MAX_PRIO){
+    init_queue(&prio_que[i++]);
+  }
   initlock(&prio_que_lock, "prioque");
   #endif
+  ///printf("init ptable lock");
 }
 
 //PAGEBREAK: 32
@@ -116,6 +121,12 @@ userinit(void)
   p->cwd = namei("/");
 
   p->state = RUNNABLE;
+  #if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
+    acquire(&prio_que_lock);
+    enqueue(&prio_que[proc_initial_priority - 1], p);
+    release(&prio_que_lock);
+  #endif 
+  
 }
 
 // Grow current process's memory by n bytes.
@@ -178,11 +189,10 @@ fork(void)
   acquire(&ptable.lock);
   np->state = RUNNABLE;
   
-  //cprintf("fork\n");
   // add new proc to the defalt priority queue  - policies SML and DML
   #if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
     acquire(&prio_que_lock);
-    enqueue(&prio_que[proc_initial_priority], np);
+    enqueue(&prio_que[proc_initial_priority - 1], np);
     release(&prio_que_lock);
   #endif 
   
@@ -389,7 +399,7 @@ fcfsPolicy(void)
 
       // Process is done running for now.
       // It should have changed its p->state before coming back.
-      proc = 0;
+      proc = 0; 
     }
     release(&ptable.lock);
   }
@@ -402,16 +412,16 @@ struct proc*
 getNextProc(struct proc* p)
 {  
   int i;
+  p = 0;
   acquire(&prio_que_lock);
   for (i = MAX_PRIO; i > 0; i--) {
-    
-    if ( 0 ==  empty(&prio_que[scheduler_priority])) {  // if curr queue is not empty
-       p = dequeue(&prio_que[scheduler_priority]);      // extract first queue
+    if ( 0 ==  empty(&prio_que[i - 1])) {  // if curr queue is not empty
+       p = dequeue(&prio_que[i - 1]);      // extract first queue
        break; 
     }
       
-  	scheduler_priority = (scheduler_priority == 1) 
-                            ? MAX_PRIO : scheduler_priority - 1;
+  	//scheduler_priority = (scheduler_priority == 1) 
+      //                      ? MAX_PRIO : scheduler_priority - 1;
   	//set_prio(scheduler_priority); 				    // switch to a lower priority queue
   }
   release(&prio_que_lock);
@@ -425,18 +435,14 @@ void
 mlPolicy(void)
 {
   struct proc *p = 0;
-  int i = 0;
-  while (i < MAX_PRIO){
-    init_queue(&prio_que[i++]);
-  }
+  int i;
 
   for(;;){
   	// Enable interrupts on this processor.
   	sti();
-
   	// Loop over process table looking for process to run.
   	acquire(&ptable.lock);
-  	//cprintf("mlpolicy cpu->id = %d", cpu->id);
+  	
   	for (i = 0; i < NPROC && (p = getNextProc(p)) != 0; i++){
   	  
   	  // Switch to chosen process.  It is the process's job
@@ -506,14 +512,12 @@ sched(void)
 void
 yield(void)
 {
-
-  //cprintf("yield\n");
   acquire(&ptable.lock);  //DOC: yieldlock
   proc->state = RUNNABLE;
   // add new proc to the defalt priority queue  - policies SML and DML
   #if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
     acquire(&prio_que_lock);
-    enqueue(&prio_que[proc_initial_priority], proc);
+    enqueue(&prio_que[proc_initial_priority - 1], proc);
     release(&prio_que_lock);
   #endif 
   sched();
@@ -589,12 +593,11 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan) {
 
-      //cprintf("wakeup1\n");
       p->state = RUNNABLE;
       // add new proc to the defalt priority queue  - policies SML and DML
       #if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
         acquire(&prio_que_lock);
-        enqueue(&prio_que[proc_initial_priority], p);
+        enqueue(&prio_que[proc_initial_priority - 1], p);
         release(&prio_que_lock);
       #endif 
     }
