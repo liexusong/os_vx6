@@ -16,7 +16,6 @@ static int proc_initial_priority = 2;    //default priority queue for ready proc
 
 #if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
   struct spinlock prio_que_lock;
-  //static int scheduler_priority = MAX_PRIO; // scheduler current priority queue
   struct queue prio_que[MAX_PRIO];        //all priority queues
 #endif
 
@@ -333,21 +332,53 @@ wait2(int *retime, int *rutime, int *stime)
     // Wait for children to exit.  (See wakeup1 call in proc_exit.)
     sleep(proc, &ptable.lock);  //DOC: wait-sleep
   }
-  // struct proc *p;
-  // int ans = -1;
-  // ans = wait();
+}
 
-  // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-  //     if(p->pid == ans){
-  //       // assign to retime/rutime/stime the values from the current proc
-  //       *retime = p->retime;
-  //       *rutime = p->rutime;
-  //       *stime = p->stime;
-  //       break;
-  //     }
-  //   }
+// wait3 - Implemented as a system_call
+int
+wait3(int *retime, int *rutime, int *stime, int *ctime, int *priority)
+{ 
+  struct proc *p;
+  int havekids, pid;
 
-  // return ans;
+  acquire(&ptable.lock);
+  for(;;){
+    // Scan through table looking for zombie children.
+    havekids = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->parent != proc)
+        continue;
+      havekids = 1;
+      if(p->state == ZOMBIE){
+        // Found one.
+        pid = p->pid;
+        kfree(p->kstack);
+        p->kstack = 0;
+        freevm(p->pgdir);
+        p->state = UNUSED;
+        p->pid = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
+        *retime = p->retime;
+        *rutime = p->rutime;
+        *stime = p->stime;
+        *ctime = p->ctime;
+        *priority = p->prio;
+        release(&ptable.lock);
+        return pid;
+      }
+    }
+
+    // No point waiting if we don't have any children.
+    if(!havekids || proc->killed){
+      release(&ptable.lock);
+      return -1;
+    }
+
+    // Wait for children to exit.  (See wakeup1 call in proc_exit.)
+    sleep(proc, &ptable.lock);  //DOC: wait-sleep
+  }
 }
 
 //the priority of the queue where a new process should be added 
@@ -465,12 +496,9 @@ getNextProc(struct proc* p)
   for (i = MAX_PRIO; i > 0; i--) {
     if ( 0 ==  empty(&prio_que[i - 1])) {  // if curr queue is not empty
        p = dequeue(&prio_que[i - 1]);      // extract first queue
+       cprintf("prio queue: %d, pid= %d, p->prio =%d \n",i, p->pid, p->prio );
        break; 
     }
-      
-  	//scheduler_priority = (scheduler_priority == 1) 
-      //                      ? MAX_PRIO : scheduler_priority - 1;
-  	//set_prio(scheduler_priority); 				    // switch to a lower priority queue
   }
   release(&prio_que_lock);
   return p;
@@ -565,17 +593,11 @@ yield(void)
   // add new proc to the default priority queue  - policies SML and DML
   #if defined(SCHEDFLAG_SML)
     acquire(&prio_que_lock);
-    // yielding manually return priority to default
-    if (set_prio(proc_initial_priority - 1) == 0) {
-      enqueue(&prio_que[proc_initial_priority - 1], proc); 
-    }
+    enqueue(&prio_que[proc_initial_priority - 1], proc); // yielding manually return priority to default
     release(&prio_que_lock);
-  
   #elif defined(SCHEDFLAG_DML)
     acquire(&prio_que_lock);
-    if (set_prio(proc->prio -1) == 0){
-      enqueue(&prio_que[proc->prio - 1], proc); // yielding manually keeps the priority the same
-    }
+    enqueue(&prio_que[proc->prio - 1], proc); // yielding manually keeps the priority the same
     release(&prio_que_lock);
   #endif 
 
@@ -656,16 +678,12 @@ wakeup1(void *chan)
       // add new proc to the defalt priority queue  - policies SML and DML
       #if defined(SCHEDFLAG_SML)
         acquire(&prio_que_lock);
-        if (set_prio(p->prio - 1) == 0){
-          enqueue(&prio_que[p->prio - 1], p); // return from sleep keeps the priority the same
-        }
+        enqueue(&prio_que[p->prio - 1], p); // return from sleep keeps the priority the same
         release(&prio_que_lock);
       
       #elif defined(SCHEDFLAG_DML)
         acquire(&prio_que_lock);
-        if (set_prio(MAX_PRIO -1) == 0){
-          enqueue(&prio_que[MAX_PRIO -1], p); // return from sleep increase the priority to max
-        }
+        enqueue(&prio_que[MAX_PRIO -1], p); // return from sleep increase the priority to max
         release(&prio_que_lock);
       
       #endif

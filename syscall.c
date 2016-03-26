@@ -102,6 +102,7 @@ extern int sys_history(void);
 extern int sys_wait2(void);
 extern int sys_set_prio(void);
 extern int sys_yield(void);
+extern int sys_wait3(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -129,6 +130,7 @@ static int (*syscalls[])(void) = {
 [SYS_wait2]   sys_wait2,
 [SYS_set_prio] sys_set_prio,
 [SYS_yield]   sys_yield,
+[SYS_wait3]   sys_wait3,
 };
 
 void

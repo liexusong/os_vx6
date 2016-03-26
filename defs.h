@@ -128,6 +128,7 @@ void            wakeup(void*);
 void            yield(void);
 int             wait2(int*, int*, int*); //new
 int             set_prio(int); //new
+int 			wait3(int*, int*, int*, int*, int*); //new
 
 // swtch.S
 void            swtch(struct context**, struct context*);

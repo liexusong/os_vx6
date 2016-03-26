@@ -43,7 +43,7 @@ main(int argc, char *argv[])
           set_prio(3);  // Process priority = 3
           break;
         }   
-
+        
         CPU_Loop();    
         exit();
     }
@@ -56,11 +56,13 @@ main(int argc, char *argv[])
   int retime = 0;
   int rutime = 0;
   int stime  = 0;
+  int ctime = 0;
+  int priority = 0;
   int wpid;
   // the father waits for all the child proces
-  while ((wpid = wait2(&retime, &rutime, &stime)) > 0) {        
+  while ((wpid = wait3(&retime, &rutime, &stime, &ctime, &priority)) > 0) {        
   	if (wpid != -1)
-      printf(1,"pid: %d , Termination time: %d\n", wpid, (retime+rutime+stime));
+      printf(1,"pid: %d ,priority - %d, Termination time: %d\n", wpid, priority, (ctime+retime+rutime+stime));
   }
 
   exit();

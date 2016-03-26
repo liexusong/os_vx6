@@ -27,6 +27,8 @@ int history(char*, int);
 int wait2(int* , int*, int*);
 int set_prio(int);
 int yield(void);
+int wait3(int* , int*, int*, int*, int*);
+
 
 // ulib.c
 int stat(char*, struct stat*);

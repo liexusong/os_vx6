@@ -114,11 +114,25 @@ sys_wait2(void)
 }
 
 int
+sys_wait3(void)
+{
+  int* retime = 0;
+  int* rutime = 0;
+  int* stime  = 0;
+  int* ctime = 0;
+  int *priority = 0;
+
+  if (argptr(0, (void*)&retime, sizeof(int)) < 0 || argptr(1, (void*)&rutime, sizeof(int)) < 0 || argptr(2, (void*)&stime, sizeof(int)) < 0 || argptr(3, (void*)&ctime, sizeof(int)) < 0 || argptr(4, (void*)&priority, sizeof(int)) < 0)
+    return -1;
+  return wait3(retime, rutime, stime, ctime, priority);
+}
+
+int
 sys_set_prio(void)
 {
   int priority;
 
-  if(argint(1, &priority) < 0) // fill parameter priority
+  if(argint(0, &priority) < 0) // fill parameter priority
     return -1;
   return set_prio(priority);
 }
