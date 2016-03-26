@@ -53,17 +53,20 @@ void
 printpGroupsAvg(void)
 {  
   printf(1, "\n");
-  printf(1, "CPU --> Avarage stime:%d\n",    cpu_count == 0 ? 0 : (cpu_stime  / cpu_count));
-  printf(1, "CPU --> Avarage retime:%d\n",   cpu_count == 0 ? 0 : (cpu_retime / cpu_count));
-  printf(1, "CPU --> Avarage rutime:%d\n\n", cpu_count == 0 ? 0 : (cpu_rutime / cpu_count));
+  printf(1, "CPU --> Avarage sleep time:%d\n",    cpu_count == 0 ? 0 : (cpu_stime  / cpu_count));
+  printf(1, "CPU --> Avarage ready time:%d\n",   cpu_count == 0 ? 0 : (cpu_retime / cpu_count));
+  printf(1, "CPU --> Avarage Turnaround:%d\n\n", cpu_count == 0 ? 0 : ((cpu_rutime+cpu_retime+cpu_stime)  / cpu_count));
+  //printf(1, "CPU --> Avarage rutime:%d\n\n", cpu_count == 0 ? 0 : (cpu_rutime / cpu_count));
 
-  printf(1, "SCPU --> Avarage stime:%d\n",    scpu_count == 0 ? 0 : (scpu_stime  / scpu_count));
-  printf(1, "SCPU --> Avarage retime:%d\n",   scpu_count == 0 ? 0 : (scpu_retime / scpu_count));
-  printf(1, "SCPU --> Avarage rutime:%d\n\n", scpu_count == 0 ? 0 : (scpu_rutime / scpu_count));
+  printf(1, "SCPU --> Avarage sleep time:%d\n",    scpu_count == 0 ? 0 : (scpu_stime  / scpu_count));
+  printf(1, "SCPU --> Avarage ready time:%d\n",   scpu_count == 0 ? 0 : (scpu_retime / scpu_count));
+  printf(1, "SCPU --> Avarage Turnaround:%d\n\n", scpu_count == 0 ? 0 : ((scpu_rutime+scpu_retime+scpu_stime) / scpu_count));
+  //printf(1, "SCPU --> Avarage rutime:%d\n\n", scpu_count == 0 ? 0 : (scpu_rutime / scpu_count));
 
-  printf(1, "IO --> Avarage stime:%d\n",    io_count == 0 ? 0 : (io_stime  / io_count));
-  printf(1, "IO --> Avarage retime:%d\n",   io_count == 0 ? 0 : (io_retime / io_count));
-  printf(1, "IO --> Avarage rutime:%d\n\n", io_count == 0 ? 0 : (io_rutime / io_count));
+  printf(1, "IO --> Avarage sleep time:%d\n",    io_count == 0 ? 0 : (io_stime  / io_count));
+  printf(1, "IO --> Avarage ready time:%d\n",   io_count == 0 ? 0 : (io_retime / io_count));
+  printf(1, "IO --> Avarage Turnaround:%d\n\n", io_count == 0 ? 0 : ((io_rutime+io_retime+io_stime) / io_count));
+  //printf(1, "IO --> Avarage rutime:%d\n\n", io_count == 0 ? 0 : (io_rutime / io_count));
 }
 
 int
@@ -83,13 +86,13 @@ main(int argc, char *argv[])
         pid=getpid();
         switch (pid % 3) {
           case 0:
-            f0();
+            f0();  //CPU
             break;
           case 1:
-            f1();
+            f1();  //S-CPU
             break;
           case 2:
-            f2();
+            f2();  //IO
             break;
         }       
         exit();
@@ -104,10 +107,9 @@ main(int argc, char *argv[])
   int rutime = 0;
   int stime  = 0;
   int wpid;
-  int pook = 0;
-  while ((wpid = wait2(&retime, &rutime, &stime)) > 0) { // the father waits for all the child proces
-    pook++;
-    //sum for avarages
+  // the father waits for all the child proces
+  while ((wpid = wait2(&retime, &rutime, &stime)) > 0) { 
+    //sums for avarage
     switch (wpid % 3) {
           case 0:
            {
