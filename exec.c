@@ -92,6 +92,8 @@ exec(char *path, char **argv)
   proc->sz = sz;
   proc->tf->eip = elf.entry;  // main
   proc->tf->esp = sp;
+  //reset proc to default priority (default = 2)
+  proc->prio = 2;
   switchuvm(proc);
   freevm(oldpgdir);
   return 0;

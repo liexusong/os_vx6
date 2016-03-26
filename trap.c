@@ -101,13 +101,19 @@ trap(struct trapframe *tf)
   if(proc && proc->killed && (tf->cs&3) == DPL_USER)
     exit();
 
-  // Force process to give up CPU on clock tick.
-  // If interrupts were on while locks held, would need to check nlock.
-  if(proc && proc->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER && (proc->rutime % QUANTA) == 0)
-    yield();
-
+    // Force process to give up CPU on clock tick.
+    // If interrupts were on while locks held, would need to check nlock.
+  if(proc && proc->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER && (proc->rutime % QUANTA) == 0) {
+      #ifndef SCHEDFLAG_FCFS
+        #ifdef SCHEDFLAG_DML
+          if(proc->prio > 1)
+            proc->prio--;
+        #endif
+        yield();
+      #endif
+    
+  }
   // Check if the process has been killed since we yielded
   if(proc && proc->killed && (tf->cs&3) == DPL_USER)
     exit();
 }
-

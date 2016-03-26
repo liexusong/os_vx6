@@ -68,6 +68,7 @@ found:
   p->retime = 0; 
   p->rutime = 0;
   p->stime = 0;
+  p->prio = proc_initial_priority;
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -123,7 +124,7 @@ userinit(void)
   p->state = RUNNABLE;
   #if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
     acquire(&prio_que_lock);
-    enqueue(&prio_que[proc_initial_priority - 1], p);
+    enqueue(&prio_que[p->prio - 1], p);
     release(&prio_que_lock);
   #endif 
   
@@ -189,10 +190,10 @@ fork(void)
   acquire(&ptable.lock);
   np->state = RUNNABLE;
   
-  // add new proc to the defalt priority queue  - policies SML and DML
+  // proc priority is transfered from father to son via fork - policies SML and DML
   #if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
     acquire(&prio_que_lock);
-    enqueue(&prio_que[proc_initial_priority - 1], np);
+    enqueue(&prio_que[np->prio - 1], np);
     release(&prio_que_lock);
   #endif 
   
@@ -561,12 +562,23 @@ yield(void)
 {
   acquire(&ptable.lock);  //DOC: yieldlock
   proc->state = RUNNABLE;
-  // add new proc to the defalt priority queue  - policies SML and DML
-  #if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
+  // add new proc to the default priority queue  - policies SML and DML
+  #if defined(SCHEDFLAG_SML)
     acquire(&prio_que_lock);
-    enqueue(&prio_que[proc_initial_priority - 1], proc);
+    // yielding manually return priority to default
+    if (set_prio(proc_initial_priority - 1) == 0) {
+      enqueue(&prio_que[proc_initial_priority - 1], proc); 
+    }
+    release(&prio_que_lock);
+  
+  #elif defined(SCHEDFLAG_DML)
+    acquire(&prio_que_lock);
+    if (set_prio(proc->prio -1) == 0){
+      enqueue(&prio_que[proc->prio - 1], proc); // yielding manually keeps the priority the same
+    }
     release(&prio_que_lock);
   #endif 
+
   sched();
   release(&ptable.lock);
 }
@@ -642,11 +654,21 @@ wakeup1(void *chan)
 
       p->state = RUNNABLE;
       // add new proc to the defalt priority queue  - policies SML and DML
-      #if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
+      #if defined(SCHEDFLAG_SML)
         acquire(&prio_que_lock);
-        enqueue(&prio_que[proc_initial_priority - 1], p);
+        if (set_prio(p->prio - 1) == 0){
+          enqueue(&prio_que[p->prio - 1], p); // return from sleep keeps the priority the same
+        }
         release(&prio_que_lock);
-      #endif 
+      
+      #elif defined(SCHEDFLAG_DML)
+        acquire(&prio_que_lock);
+        if (set_prio(MAX_PRIO -1) == 0){
+          enqueue(&prio_que[MAX_PRIO -1], p); // return from sleep increase the priority to max
+        }
+        release(&prio_que_lock);
+      
+      #endif
     }
 }
 

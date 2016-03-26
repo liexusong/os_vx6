@@ -71,6 +71,7 @@ struct proc {
   int stime;                   // Sleeping time
   int retime;                  // Ready time (RUNNABLE)
   int rutime;                  // Run time (RUNNIG)
+  int prio;                     // Process priority
 };
 
 #define QUEUESIZE NPROC
