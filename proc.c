@@ -167,6 +167,7 @@ fork(void)
     kfree(np->kstack);
     np->kstack = 0;
     np->state = UNUSED;
+    np->prio = proc->prio;
     return -1;
   }
   np->sz = proc->sz;
@@ -388,7 +389,7 @@ set_prio(int priority)
   if (priority < 1 || priority > 3)
     return -1;
   else {
-    proc_initial_priority = priority;
+    proc->prio = priority;
     return 0;
   }
 }
@@ -572,13 +573,9 @@ yield(void)
   acquire(&ptable.lock);  //DOC: yieldlock
   proc->state = RUNNABLE;
   // add new proc to the default priority queue  - policies SML and DML
-  #if defined(SCHEDFLAG_SML)
+  #if (defined(SCHEDFLAG_SML) || defined(SCHEDFLAG_DML))
     acquire(&prio_que_lock);
-    enqueue(&prio_que[proc_initial_priority - 1], proc); // yielding manually return priority to default
-    release(&prio_que_lock);
-  #elif defined(SCHEDFLAG_DML)
-    acquire(&prio_que_lock);
-    enqueue(&prio_que[proc->prio - 1], proc); // yielding manually keeps the priority the same
+    enqueue(&prio_que[proc->prio - 1], proc); // yielding manually return priority to default
     release(&prio_que_lock);
   #endif 
 
@@ -664,7 +661,7 @@ wakeup1(void *chan)
       
       #elif defined(SCHEDFLAG_DML)
         acquire(&prio_que_lock);
-        enqueue(&prio_que[MAX_PRIO -1], p); // return from sleep increase the priority to max
+        enqueue(&prio_que[MAX_PRIO - 1], p); // return from sleep increase the priority to max
         release(&prio_que_lock);
       
       #endif

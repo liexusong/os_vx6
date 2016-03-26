@@ -31,7 +31,7 @@ main(int argc, char *argv[])
 
   for(i = 0; i < 20; i++){
   	if ((pid = fork()) == 0) { // son
-      pid=getpid();
+      pid = getpid();
       switch (pid % 3) {
         case 0:
           set_prio(1);  // Process priority = 1

@@ -93,7 +93,9 @@ exec(char *path, char **argv)
   proc->tf->eip = elf.entry;  // main
   proc->tf->esp = sp;
   //reset proc to default priority (default = 2)
-  proc->prio = 2;
+  #if defined(SCHEDFLAG_DML)
+    set_prio(2);
+  #endif
   switchuvm(proc);
   freevm(oldpgdir);
   return 0;
