@@ -1,14 +1,7 @@
 TODO
 
-Reut:
-2. Task 4.1 - general senity checks - finish to write code and check - DONE
-
-Omri:
-1. In trap() function - add handle to preemption / non preemption scheduler policies
-
-
 tasks left :
-1. Task 3.4 
-2. Task 4 yeild() system call - DONE
+1. In trap() function - add handle to preemption / non preemption 
+2. Task 3.4 
 3. Task 4.2 - senity checks - priority scheduler test
 4. checks on lab computer + submission and check after
