@@ -1,0 +1,25 @@
+diff --git a/TASKS b/TASKS
+deleted file mode 100644
+index 5ecd421..0000000
+--- a/TASKS
++++ /dev/null
+@@ -1,7 +0,0 @@
+-TODO
+-
+-tasks left :
+-1. In trap() function - add handle to preemption / non preemption - done
+-2. Task 3.4 - done
+-3. Task 4.2 - senity checks - priority scheduler test
+-4. checks on lab computer + submission and check after
+diff --git a/proc.c b/proc.c
+index df2429d..12c6244 100644
+--- a/proc.c
++++ b/proc.c
+@@ -496,7 +496,6 @@ getNextProc(struct proc* p)
+   for (i = MAX_PRIO; i > 0; i--) {
+     if ( 0 ==  empty(&prio_que[i - 1])) {  // if curr queue is not empty
+        p = dequeue(&prio_que[i - 1]);      // extract first queue
+-       cprintf("prio queue: %d, pid= %d, p->prio =%d \n",i, p->pid, p->prio );
+        break; 
+     }
+   }

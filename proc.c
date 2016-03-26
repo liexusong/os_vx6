@@ -460,24 +460,15 @@ fcfsPolicy(void)
   int i;
 
   for(;;){
-    // Enable interrupts on this processor.
     sti();
-
-    // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     for (i = 0; i < NPROC && (p = getFirstReadyProc(p)) != 0; i++){
-
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
       proc = p;
       switchuvm(p);
       p->state = RUNNING;
       swtch(&cpu->scheduler, proc->context);
       switchkvm();
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
       proc = 0; 
     }
     release(&ptable.lock);
@@ -496,7 +487,6 @@ getNextProc(struct proc* p)
   for (i = MAX_PRIO; i > 0; i--) {
     if ( 0 ==  empty(&prio_que[i - 1])) {  // if curr queue is not empty
        p = dequeue(&prio_que[i - 1]);      // extract first queue
-       cprintf("prio queue: %d, pid= %d, p->prio =%d \n",i, p->pid, p->prio );
        break; 
     }
   }
@@ -514,31 +504,22 @@ mlPolicy(void)
   int i;
 
   for(;;){
-  	// Enable interrupts on this processor.
   	sti();
-  	// Loop over process table looking for process to run.
   	acquire(&ptable.lock);
   	
   	for (i = 0; i < NPROC && (p = getNextProc(p)) != 0; i++){
-  	  
-  	  // Switch to chosen process.  It is the process's job
-  	  // to release ptable.lock and then reacquire it
-  	  // before jumping back to us.
   	  proc = p;
   	  switchuvm(p);
   	  p->state = RUNNING;
   	  swtch(&cpu->scheduler, proc->context);
   	  switchkvm();
 
-  	  // Process is done running for now.
-  	  // It should have changed its p->state before coming back.
   	  proc = 0;
   	}
     release(&ptable.lock);
   }
 }
 #endif
-
 
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
