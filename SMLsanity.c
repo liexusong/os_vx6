@@ -61,7 +61,7 @@ main(int argc, char *argv[])
   int wpid;
   // the father waits for all the child proces
   while ((wpid = wait3(&retime, &rutime, &stime, &ctime, &priority)) > 0) {        
-    printf(1,"pid: %d ,priority - %d, Termination time: %d\n", wpid, priority, (ctime+retime+rutime+stime));
+    printf(1,"pid: %d ,priority - %d, Termination time: %d\n", wpid, priority, uptime());
   }
 
   exit();
